@@ -59,7 +59,7 @@
             android:id="@+id/btnGoldenRatio"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Golden Ratio" />
+            android:text="Golden R" />
 
     </LinearLayout>
 
