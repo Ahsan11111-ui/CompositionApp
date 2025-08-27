@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
-import kotlin.math.*
+import kotlin.math.min
 
 class OverlayView @JvmOverloads constructor(
     context: Context,
@@ -26,7 +26,7 @@ class OverlayView @JvmOverloads constructor(
 
     fun setCompositionMode(mode: CompositionMode) {
         compositionMode = mode
-        invalidate() // redraw view
+        invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -36,7 +36,7 @@ class OverlayView @JvmOverloads constructor(
             CompositionMode.CENTRAL -> drawCentralGuide(canvas)
             CompositionMode.RULE_OF_THIRDS -> drawRuleOfThirds(canvas)
             CompositionMode.DIAGONAL -> drawDiagonalGuides(canvas)
-            CompositionMode.GOLDEN_RATIO -> drawGoldenSpiral(canvas) // ✅ connected
+            CompositionMode.GOLDEN_RATIO -> drawGoldenSpiralLandscape(canvas) // ✅ landscape only
         }
     }
 
@@ -61,92 +61,56 @@ class OverlayView @JvmOverloads constructor(
         canvas.drawLine(width.toFloat(), 0f, 0f, height.toFloat(), paint)
     }
 
-    // ✅ Your Golden Spiral function integrated
-    private fun drawGoldenSpiral(canvas: Canvas) {
-        // Generate Fibonacci sequence
+    /**
+     * Golden Ratio Spiral (Landscape only)
+     */
+    private fun drawGoldenSpiralLandscape(canvas: Canvas) {
+        // Fibonacci sequence
         val fibs = mutableListOf(1, 1)
-        for (i in 0 until 8) { // Fewer iterations for better visibility
+        for (i in 0 until 5) { // more terms = larger spiral
             fibs.add(fibs[fibs.size - 1] + fibs[fibs.size - 2])
         }
 
-        // Scale factor
-        val scale = min(width, height) * 0.025f
+        // Fit spiral across full LANDSCAPE width
+        val maxFib = fibs.maxOrNull() ?: 1
+        val scale = (width.toFloat() * 1.15f) / (maxFib.toFloat() * 1.03f)
 
-        // Position spiral in lower-left area (like your reference image)
-        val startX = width * 0.3f
-        val startY = height * 0.7f
+        // Center vertically
+        val offsetY = (height - (maxFib * scale))
 
-        // Save canvas state
-        canvas.save()
-
-        // Start from our custom position
-        canvas.translate(startX, startY)
-
-        // Set paint properties for rectangles
+        // Paints
         val rectPaint = Paint().apply {
             color = Color.WHITE
             strokeWidth = 2f
             style = Paint.Style.STROKE
             isAntiAlias = true
         }
+        val spiralPaint = Paint(paint).apply {
+            color = Color.YELLOW
+            strokeWidth = 3f
+            style = Paint.Style.STROKE
+        }
 
-        // Set paint properties for spiral
-        paint.color = Color.YELLOW
-        paint.strokeWidth = 3f
-        paint.style = Paint.Style.STROKE
-        paint.isAntiAlias = true
+        // Save + translate
+        canvas.save()
+        canvas.translate(270f, 1400f)
 
-        // Draw the spiral with visible segments
+        // Draw Fibonacci rectangles + spiral
         for (i in 0 until fibs.size) {
             val fibSize = fibs[i] * scale
 
-            // Draw the Fibonacci rectangle outline to show segmentation
+            // Rectangle grid
             canvas.drawRect(0f, 0f, fibSize, fibSize, rectPaint)
 
-            // Draw the quarter circle arc inside the rectangle
+            // Spiral arc
             val arcRect = RectF(0f, -fibSize, 2 * fibSize, fibSize)
-            canvas.drawArc(arcRect, 90f, 90f, false, paint)
+            canvas.drawArc(arcRect, 90f, 90f, false, spiralPaint)
 
-            // Move and rotate for next segment
+            // Shift + rotate
             canvas.translate(fibSize, fibSize)
             canvas.rotate(-90f)
-
-            // Stop if getting too large
-            if (fibSize > min(width, height) * 0.3f) break
-        }
-
-        // Restore canvas state
-        canvas.restore()
-
-        // Optional: Add Fibonacci numbers as labels
-        canvas.save()
-        canvas.translate(startX, startY)
-
-        val textPaint = Paint().apply {
-            color = Color.WHITE
-            textSize = scale * 0.8f
-            textAlign = Paint.Align.CENTER
-            isAntiAlias = true
-        }
-
-        for (i in 0 until minOf(fibs.size, 6)) { // Label first few rectangles
-            val fibSize = fibs[i] * scale
-
-            // Draw the Fibonacci number in the center of each rectangle
-            canvas.drawText(
-                fibs[i].toString(),
-                fibSize / 2,
-                fibSize / 2 + textPaint.textSize / 3,
-                textPaint
-            )
-
-            canvas.translate(fibSize, fibSize)
-            canvas.rotate(-90f)
-
-            if (fibSize > min(width, height) * 0.3f) break
         }
 
         canvas.restore()
     }
-
 }
